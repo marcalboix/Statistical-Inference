@@ -19,7 +19,7 @@ In this document we will do the following tasks:
 #. Show that the distribution is approximately normal.
 
 ## Initialization
-In order to complete the project we need to initialize, with a few statements, R.  
+In order to complete the project we need to initialize R with a few statements.
 ```{r, echo=TRUE}
 options(warn=-1)
 set.seed(11525)
