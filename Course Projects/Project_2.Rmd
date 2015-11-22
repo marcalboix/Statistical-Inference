@@ -1,0 +1,85 @@
+---
+title: "Basic Inferential Data Analysis"
+author: "Marçal Boix"
+date: "Nov 21, 2015"
+output: pdf_document
+latex_engine: xelatex
+---
+
+In the second part of the project, we analyze the ToothGrowth data in the R datasets package. The data is set of 60 observations, length of odontoblasts (teeth) in each of 10 guinea pigs at each of three dose levels of Vitamin C (0.5, 1 and 2 mg) with each of two delivery methods (orange juice or ascorbic acid).
+
+## Initialization
+In order to complete the project we need to initialize R with a few statements.
+```{r, echo=TRUE}
+library(ggplot2)
+library(pander)
+```
+
+## Loading data
+```{r, echo=TRUE}
+# ToothGrowth - The Effect of Vitamin C on Tooth Growth in Guinea Pigs.
+library(datasets)
+head(ToothGrowth)
+```
+
+## Basic Summary
+```{r, echo=TRUE}
+# Structure of data frame.
+str(ToothGrowth)
+# Summary of columns. Few statistics for each column.
+summary(ToothGrowth)
+# Number of observations by supplement type and dose.
+table(ToothGrowth$supp, ToothGrowth$dose)
+```
+
+## Correlation
+```{r}
+ggplot(data=ToothGrowth, aes(x=as.factor(dose), y=len, fill=supp)) +
+    geom_bar(stat="identity") +
+    facet_grid(. ~ supp) +
+    xlab("Dose in miligrams") +
+    ylab("Tooth length") +
+    guides(fill=guide_legend(title="Supplement type")) +
+    theme_bw()
+```
+
+As we can see in the graph above, there is a positive correlation between the tooth length and the dose levels of Vitamin C, for both delivery methods.  
+
+For each supplement type and dose, we will calculate mean, sd and variance.
+```{r}
+dose = as.numeric(levels(as.factor(ToothGrowth$dose)))
+supp = levels(ToothGrowth$supp)
+basicSt = list()
+for (d in dose)
+{
+    for (s in supp)
+    {
+        subTG = ToothGrowth$len[ToothGrowth$dose==d & ToothGrowth$supp==s]
+        basicSt <<- rbind(basicSt, list(supp = s, dose = d, mean=mean(subTG), 
+                                        sd=sd(subTG), var =var(subTG)))
+    }
+}
+as.data.frame(basicSt)
+```
+
+## Multiple hypothesis testing
+To check if there is a real difference between the groups by dose level and delivery method, we will do a two-sided unpaired t-tests.  
+This test allow us to obtain the confidence intervals and p-values.  
+The null hypothesis, in all cases, is that there is no difference in the means between the two groups.
+```{r}
+tests = list()
+for (d in dose) {
+  ojDose <- ToothGrowth$len[ToothGrowth$dose == d & ToothGrowth$supp == "OJ"]
+  vcDose <- ToothGrowth$len[ToothGrowth$dose == d & ToothGrowth$supp == "VC"]
+  # We assume unequal variance.
+  t <- t.test(ojDose, vcDose, var.equal=FALSE, paired=FALSE)
+  id <- paste("OJ", d, "-", "VC", d)
+  tests <- rbind(tests, list(id=id, p.value=round(t$p.value,5), 
+                             ci.lo=round(t$conf.int[1],6), ci.hi=round(t$conf.int[2],6)))
+}
+tests
+```
+
+## Conclusions
+#. For 0.5 and 1 mg dose levels, there is a significant difference between the means of the OJ and VC groups (p-values < 0.05  and the 95% confidence intervals doesn't include zero).
+#. For the 2 mg dose level, we fail to reject the null hypothesis  (p-value > 0.5 and the 95% confidence interval includes zero). There is no significative influence of the delivery method on tooth growth in guinea pigs, for 2mg dose.
